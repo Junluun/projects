@@ -1,8 +1,8 @@
+'''
 To overwrite the save method with a raw SQL query in your Django app, you can follow these steps:
 
 First, import the necessary libraries in your views.py:
-python
-Copy
+'''
 from django.db import connection
 from django.shortcuts import render, redirect
 Create a function to execute raw SQL queries:
@@ -12,9 +12,11 @@ def execute_raw_query(query, params=None):
     with connection.cursor() as cursor:
         cursor.execute(query, params)
         return cursor.rowcount
+ '''       
 Modify your create function to use the execute_raw_query function when saving the main form and inline formset instances:
 python
 Copy
+'''
 def create(request):
     if request.method == 'POST':
         form = YourMainForm(request.POST)
@@ -58,12 +60,11 @@ def create(request):
     return render(request, 'your_template.html', {'form': form, 'inline_formset': inline_formset})
 
 
-
+'''
 
 Yes, you can modify the PostgreSQL function to accept the inline formset data as a list of tuples instead of a JSON object. Here's an updated version of the function that accepts a list of tuples:
 
-sql
-Copy
+'''
 CREATE OR REPLACE FUNCTION save_main_form_and_inline_formset(
     field1_value TEXT,
     field2_value TEXT,
@@ -89,8 +90,7 @@ In this version of the function, we define inline_formset_data as a TEXT[] array
 
 To call this function from your Django app, you can modify the create view to pass the inline formset data as a list of tuples. Here's an example of how you can modify the create view:
 
-python
-Copy
+
 def create(request):
     if request.method == 'POST':
         form = YourMainForm(request.POST)
