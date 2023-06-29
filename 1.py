@@ -260,3 +260,97 @@ def save_report_and_expenses(request):
         'report_form': ReportGoodsForm(),
         'upload_formset': UploadFileFormset(prefix='upload'),
     })
+
+
+
+CREATE OR REPLACE FUNCTION update_yourapp_report_expense(
+    p_report_expense_id INTEGER,
+    p_number VARCHAR,
+    p_date DATE,
+    p_expense_name INTEGER,
+    p_sum DECIMAL,
+    p_spr_currency INTEGER,
+    p_file BYTEA,
+    p_new_expenses JSON[]
+)
+RETURNS VOID AS $$
+DECLARE
+    report_id INTEGER;
+    expense_id INTEGER;
+BEGIN
+    -- Update the existing expense record
+    UPDATE yourapp_report_expense
+    SET
+        number = p_number,
+        date = p_date,
+        expense_name = p_expense_name,
+        sum = p_sum,
+        spr_currency = p_spr_currency,
+        file = p_file
+    WHERE id = p_report_expense_id;
+
+    -- Insert new expenses
+    FOR i IN 1 .. array_length(p_new_expenses, 1)
+    LOOP
+        INSERT INTO yourapp_report_expense (number, date, expense_name, sum, spr_currency, file, report_id)
+        VALUES (
+            p_new_expenses[i] ->> 'number',
+            p_new_expenses[i] ->> 'date',
+            p_new_expenses[i] ->> 'expense_name',
+            p_new_expenses[i] ->> 'sum',
+            p_new_expenses[i] ->> 'spr_currency',
+            p_new_expenses[i] ->> 'file',
+            report_id
+        )
+        RETURNING id INTO expense_id;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+This modified function takes in an additional parameter p_new_expenses which is a JSON array of new expenses to be inserted into the yourapp_report_expense table. The function first updates the existing expense record identified by p_report_expense_id using the UPDATE statement. Then, it uses a loop to insert each new expense record into the table using the INSERT statement.
+
+In your Django code, you can modify the update_report_expense function to pass the new expenses as a parameter to the cursor.execute() method. Here is an example:
+
+stylus
+Copy
+def update_report_expense(request, id):
+    if request.method == 'POST':
+        form = UpdateReportExpenseForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            number = form.cleaned_data['number']
+            date = form.cleaned_data['date'].strftime('%Y-%m-%d')
+            expense_name = form.cleaned_data['expense_name'].id
+            sum = form.cleaned_data['sum']
+            spr_currency = form.cleaned_data['spr_currency'].id
+            file = form.cleaned_data['file'].file.read()
+
+            new_expenses = []
+            for form in upload_formset:
+                expense = {
+                    'number': form.cleaned_data['number'],
+                    'date': form.cleaned_data['date'].strftime('%Y-%m-%d'),
+                    'expense_name': form.cleaned_data['expense_name'].id,
+                    'sum': form.cleaned_data['sum'],
+                    'spr_currency': form.cleaned_data['spr_currency'].id,
+                    'file': form.cleaned_data['file'].file.read(),
+                }
+                new_expenses.append(expense)
+
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT update_yourapp_report_expense(%s, %s, %s, %s, %s, %s, %s, %s::json[]);",
+                               [id, number, date, expense_name, sum, spr_currency, file, json.dumps(new_expenses)])
+
+            return JsonResponse({'success': True})
+        else:
+            # Handle form errors here
+            pass
+
+    report_expense = YourappReportExpense.objects.get(id=id)
+    form = UpdateReportExpenseForm(instance=report_expense)
+    upload_formset = UploadFileFormset(prefix='upload')
+
+    return render(request, 'your_template.html', {
+        'form': form,
+        'upload_formset': upload_formset,
+    })
+In this modified function, you first extract the new expense data from the inline formset and store it in a JSON array called new_expenses. Then, you pass this array as an additional parameter to the cursor.execute() method when calling the update_yourapp_report_expense function. This way, the function will update the existing expense record and insert the new expense records at the same time.
