@@ -117,3 +117,67 @@ def create(request):
         inline_formset = YourInlineFormSet(prefix='inline_formset')
 
     return render(request, 'your_template.html', {'form': form, 'inline_formset': inline_formset})
+    from django.views.generic.edit import CreateView
+from django.db import connection, transaction
+from .models import Report, Report_status
+from .forms import ReportForm, UploadFileFormset
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib import messages
+
+class ReportCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = Report
+    form_class = ReportForm
+    success_url = reverse_lazy('reports')
+    template_name = 'report_create.html'
+
+    def test_func(self):
+        return (self.request.user.current_user.group.name == 'Сотрудник' or
+                self.request.user.current_user.group.name == 'Секретарь')
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        data['order_number'] = self.kwargs['pk_trip']
+        if self.request.POST:
+            data['reports'] = UploadFileFormset(self.request.POST, self.request.FILES)
+        else:
+            data['reports'] = UploadFileFormset()
+        return data
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        form.instance.order_number_id = self.kwargs['pk_trip']
+        reports = self.get_context_data()['reports']
+        with transaction.atomic():
+            if reports.is_valid() and form.is_valid():
+                if 'draft' in self.request.POST:
+                    report_status = Report_status.objects.get(name='Черновик')
+                else:
+                    report_status = Report_status.objects.get(name='На согласовании у руководителя')
+
+                cursor = connection.cursor()
+                cursor.execute(
+                    'SELECT save_report_with_files(%s, %s, %s, %s, %s, %s);',
+                    [form.instance.report_date, form.instance.report_name, form.instance.report_text,
+                     report_status.id, self.request.user.id, self.request.user.current_user.group.id]
+                )
+                report_id = cursor.fetchone()[0]
+
+                # Loop through the formset data and call the PostgreSQL function to save each child record
+                for report in reports:
+                    if report.cleaned_data:
+                        cursor.execute(
+                            'SELECT save_report_file(%s, %s);',
+                            [report.cleaned_data['file_field'], report_id]
+                        )
+
+                        cursor.execute(
+                            'SELECT save_report_status_history(%s, %s, %s, %s, %s);',
+                            [timezone.now(), report_id, report_status.id, self.request.user.id, self.request.user.current_user.group.id]
+                        )
+
+                messages.success(self.request, 'Запись сохранена')
+                return super().form_valid(form)
+            else:
+                return self.render_to_response(self.get_context_data(form=form, reports=reports))
