@@ -181,3 +181,82 @@ class ReportCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 return super().form_valid(form)
             else:
                 return self.render_to_response(self.get_context_data(form=form, reports=reports))
+
+
+CREATE OR REPLACE FUNCTION save_report_and_expenses(
+    p_spr_report INTEGER,
+    p_accountable_person VARCHAR,
+    p_attorney_file BYTEA,
+    p_expenses JSON[]
+)
+RETURNS VOID AS $$
+DECLARE
+    report_id INTEGER;
+BEGIN
+    -- Insert the report
+    INSERT INTO yourapp_report (spr_report, accountable_person, attorney_file)
+    VALUES (p_spr_report, p_accountable_person, p_attorney_file)
+    RETURNING id INTO report_id;
+    
+    -- Insert the expenses
+    FOR i IN 1 .. array_length(p_expenses, 1)
+    LOOP
+        INSERT INTO yourapp_report_expense (number, date, expense_name, sum, spr_currency, file, report_id)
+        VALUES (
+            p_expenses[i] ->> 'number',
+            p_expenses[i] ->> 'date',
+            p_expenses[i] ->> 'expense_name',
+            p_expenses[i] ->> 'sum',
+            p_expenses[i] ->> 'spr_currency',
+            p_expenses[i] ->> 'file',
+            report_id
+        );
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+Now, create a Django view that calls this function to save the form data:
+
+python
+Copy
+from django.db import connection
+from django.http import JsonResponse
+from django.shortcuts import render
+import json
+
+def save_report_and_expenses(request):
+    if request.method == 'POST':
+        report_form = ReportGoodsForm(request.POST, request.FILES)
+        upload_formset = UploadFileFormset(request.POST, request.FILES, prefix='upload')
+
+        if report_form.is_valid() and upload_formset.is_valid():
+            # Prepare the data for the PostgreSQL function
+            spr_report = report_form.cleaned_data['spr_report'].id
+            accountable_person = report_form.cleaned_data['accountable_person']
+            attorney_file = report_form.cleaned_data['attorney_file'].file.read()
+
+            expenses = []
+            for form in upload_formset:
+                expense = {
+                    'number': form.cleaned_data['number'],
+                    'date': form.cleaned_data['date'].strftime('%Y-%m-%d'),
+                    'expense_name': form.cleaned_data['expense_name'].id,
+                    'sum': form.cleaned_data['sum'],
+                    'spr_currency': form.cleaned_data['spr_currency'].id,
+                    'file': form.cleaned_data['file'].file.read(),
+                }
+                expenses.append(expense)
+
+            # Call the PostgreSQL function
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT save_report_and_expenses(%s, %s, %s, %s::json[]);",
+                               [spr_report, accountable_person, attorney_file, json.dumps(expenses)])
+
+            return JsonResponse({'success': True})
+        else:
+            # Handle form errors here
+            pass
+
+    return render(request, 'your_template.html', {
+        'report_form': ReportGoodsForm(),
+        'upload_formset': UploadFileFormset(prefix='upload'),
+    })
