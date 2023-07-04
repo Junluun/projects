@@ -1,3 +1,62 @@
+To create a PostgreSQL function that performs an insert on conflict update and delete for your Uploadfileformset, you can use the INSERT ... ON CONFLICT ... DO UPDATE and DELETE statements within a function. Here's an example of how you can achieve this:
+
+CREATE OR REPLACE FUNCTION update_uploadfileformset(
+    p_report_id INT,
+    p_number INT,
+    p_date DATE,
+    p_expense_name VARCHAR,
+    p_sum DECIMAL,
+    p_spr_currency VARCHAR,
+    p_file VARCHAR
+)
+RETURNS VOID AS $$
+BEGIN
+    -- Insert or update the record
+    INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+    VALUES (p_report_id, p_number, p_date, p_expense_name, p_sum, p_spr_currency, p_file)
+    ON CONFLICT (report_id) DO UPDATE
+    SET number = EXCLUDED.number,
+        date = EXCLUDED.date,
+        expense_name = EXCLUDED.expense_name,
+        sum = EXCLUDED.sum,
+        spr_currency = EXCLUDED.spr_currency,
+        file = EXCLUDED.file;
+    
+    -- Delete the record if necessary
+    IF p_number IS NULL THEN
+        DELETE FROM report_expense WHERE report_id = p_report_id;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+In this example, the function update_uploadfileformset takes the necessary parameters (p_report_id, p_number, p_date, p_expense_name, p_sum, p_spr_currency, p_file) to update the report_expense table. It first tries to insert a new record, and if there is a conflict on the report_id column, it performs an update instead. If the p_number parameter is NULL, it deletes the record.
+
+To execute this function in Django, you can use the django.db.connection object to execute raw SQL queries. Here's an example of how you can call the function in Django:
+
+from django.db import connection
+
+def update_uploadfileformset(report_id, number, date, expense_name, sum, spr_currency, file):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT update_uploadfileformset(%s, %s, %s, %s, %s, %s, %s);
+            """,
+            [report_id, number, date, expense_name, sum, spr_currency, file]
+        )
+
+
+In this example, the update_uploadfileformset function takes the necessary parameters and executes the SQL function using the cursor.execute() method.
+
+You can then call this function in your Django code to update the Uploadfileformset:
+
+update_uploadfileformset(report_id, number, date, expense_name, sum, spr_currency, file)
+
+
+Make sure to modify the table name, column names, and return type in the PostgreSQL function according to your specific schema.
+
+
+
 CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id integer, updated_data json)
 RETURNS void AS $$
 DECLARE
