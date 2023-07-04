@@ -58,3 +58,49 @@ def report_create(request, report_type):
         'form': form,
         'queryset': queryset,
     })
+CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id integer, updated_data json)
+RETURNS void AS $$
+DECLARE
+  record_data json;
+  existing_ids integer[];
+  new_data json[];
+BEGIN
+  -- Get the IDs of the existing report_expense records
+  SELECT array_agg(id) INTO existing_ids FROM report_expense WHERE report_id = report_id;
+  
+  -- Loop through the updated data and update existing records
+  FOR record_data IN SELECT json_array_elements(updated_data)
+  LOOP
+    IF (record_data->>'id')::integer = 0 THEN
+      -- Insert new record if ID is 0
+      new_data := array_append(new_data, record_data);
+    ELSE
+      -- Update existing record
+      UPDATE report_expense
+      SET
+        number = record_data->>'number',
+        date = record_data->>'date',
+        expense_name = record_data->>'expense_name',
+        sum = (record_data->>'sum')::numeric,
+        spr_currency = record_data->>'spr_currency',
+        file = record_data->>'file'
+      WHERE report_id = report_id AND id = (record_data->>'id')::integer;
+      
+      -- Remove the ID from the existing IDs list
+      existing_ids := array_remove(existing_ids, (record_data->>'id')::integer);
+    END IF;
+  END LOOP;
+  
+  -- Delete any remaining records that weren't updated
+  IF existing_ids IS NOT NULL THEN
+    DELETE FROM report_expense WHERE report_id = report_id AND id = ANY(existing_ids);
+  END IF;
+  
+  -- Insert new records
+  IF new_data IS NOT NULL THEN
+    INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+    SELECT report_id, number, date, expense_name, sum, spr_currency, file FROM json_populate_recordset(null::report_expense, %s)
+    WHERE report_id = report_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
