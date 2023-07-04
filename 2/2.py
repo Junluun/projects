@@ -1,3 +1,216 @@
+Для обновления формсета UploadFileFormset в PostgreSQL вам необходимо выполнить следующие шаги:
+
+Создайте функцию с помощью оператора CREATE FUNCTION. В качестве аргументов функция должна принимать идентификатор отчета (report_id) и массив данных для обновления (data), который должен содержать информацию о каждой строке формсета (id, number, date, expense_name, sum, spr_currency, file).
+Copy
+CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id INT, data JSONB)
+Для удобства дальнейшей работы создайте временную таблицу, которая будет содержать данные из массива data.
+sql_more
+Copy
+CREATE TEMPORARY TABLE tmp_data (
+  id INT,
+  number TEXT,
+  date DATE,
+  expense_name TEXT,
+  sum NUMERIC,
+  spr_currency TEXT,
+  file TEXT
+);
+Заполните временную таблицу данными из массива data, используя оператор INSERT.
+xl
+Copy
+INSERT INTO tmp_data (id, number, date, expense_name, sum, spr_currency, file)
+SELECT (d->>'id')::INT, d->>'number', d->>'date', d->>'expense_name', 
+       (d->>'sum')::NUMERIC, d->>'spr_currency', d->>'file'
+FROM jsonb_array_elements(data) AS d;
+Обновите таблицу report_expense, используя временную таблицу tmp_data. Для этого можно использовать оператор ON CONFLICT.
+ebnf
+Copy
+UPDATE report_expense AS r
+SET
+  number = tmp.number,
+  date = tmp.date,
+  expense_name = tmp.expense_name,
+  sum = tmp.sum,
+  spr_currency = tmp.spr_currency,
+  file = tmp.file
+FROM tmp_data AS tmp
+WHERE r.id = tmp.id
+ON CONFLICT (id) DO UPDATE SET
+  number = EXCLUDED.number,
+  date = EXCLUDED.date,
+  expense_name = EXCLUDED.expense_name,
+  sum = EXCLUDED.sum,
+  spr_currency = EXCLUDED.spr_currency,
+  file = EXCLUDED.file;
+Удалите из таблицы report_expense все строки, которые не были обновлены, используя оператор DELETE и временную таблицу tmp_data.
+Copy
+DELETE FROM report_expense
+WHERE report_id = report_id AND id NOT IN (SELECT id FROM tmp_data);
+Добавьте в таблицу report_expense новые строки, которых еще нет в таблице, используя оператор INSERT и временную таблицу tmp_data.
+sql_more
+Copy
+INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+SELECT report_id, number, date, expense_name, sum, spr_currency, file
+FROM tmp_data
+WHERE id IS NULL;
+Удалите временную таблицу tmp_data.
+Copy
+DROP TABLE tmp_data;
+Теперь вы можете вызвать эту функцию из Django, передавая ей идентификатор отчета и массив данных для обновления формсета UploadFileFormset.
+
+
+Like
+
+Dislike
+
+Copy message
+
+Share...
+
+Delete...
+напиши полный код функции в джанго и postgresql;
+
+Код функции в Django:
+
+python
+Copy
+from django.db import connection
+
+def update_uploadfileformset(report_id, data):
+    cursor = connection.cursor()
+    cursor.execute('''
+        CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id INT, data JSONB)
+        RETURNS TABLE (
+            id INT,
+            number TEXT,
+            date DATE,
+            expense_name TEXT,
+            sum NUMERIC,
+            spr_currency TEXT,
+            file TEXT
+        )
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            CREATE TEMPORARY TABLE tmp_data (
+              id INT,
+              number TEXT,
+              date DATE,
+              expense_name TEXT,
+              sum NUMERIC,
+              spr_currency TEXT,
+              file TEXT
+            );
+            INSERT INTO tmp_data (id, number, date, expense_name, sum, spr_currency, file)
+            SELECT (d->>'id')::INT, d->>'number', d->>'date', d->>'expense_name', 
+                   (d->>'sum')::NUMERIC, d->>'spr_currency', d->>'file'
+            FROM jsonb_array_elements(data) AS d;
+            UPDATE report_expense AS r
+            SET
+              number = tmp.number,
+              date = tmp.date,
+              expense_name = tmp.expense_name,
+              sum = tmp.sum,
+              spr_currency = tmp.spr_currency,
+              file = tmp.file
+            FROM tmp_data AS tmp
+            WHERE r.id = tmp.id AND r.report_id = report_id
+            ON CONFLICT (id) DO UPDATE SET
+              number = EXCLUDED.number,
+              date = EXCLUDED.date,
+              expense_name = EXCLUDED.expense_name,
+              sum = EXCLUDED.sum,
+              spr_currency = EXCLUDED.spr_currency,
+              file = EXCLUDED.file;
+            DELETE FROM report_expense
+            WHERE report_id = report_id AND id NOT IN (SELECT id FROM tmp_data);
+            INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+            SELECT report_id, number, date, expense_name, sum, spr_currency, file
+            FROM tmp_data
+            WHERE id IS NULL;
+            RETURN QUERY SELECT id, number, date, expense_name, sum, spr_currency, file FROM report_expense WHERE report_id = report_id;
+            DROP TABLE tmp_data;
+        END;
+        $$;
+    ''')
+    cursor.execute('SELECT * FROM update_uploadfileformset(%s, %s)', [report_id, data])
+    rows = cursor.fetchall()
+    cursor.close()
+    return rows
+Код функции в PostgreSQL:
+
+sql
+Copy
+CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id INT, data JSONB)
+RETURNS TABLE (
+    id INT,
+    number TEXT,
+    date DATE,
+    expense_name TEXT,
+    sum NUMERIC,
+    spr_currency TEXT,
+    file TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    CREATE TEMPORARY TABLE tmp_data (
+      id INT,
+      number TEXT,
+      date DATE,
+      expense_name TEXT,
+      sum NUMERIC,
+      spr_currency TEXT,
+      file TEXT
+    );
+    INSERT INTO tmp_data (id, number, date, expense_name, sum, spr_currency, file)
+    SELECT (d->>'id')::INT, d->>'number', d->>'date', d->>'expense_name', 
+           (d->>'sum')::NUMERIC, d->>'spr_currency', d->>'file'
+    FROM jsonb_array_elements(data) AS d;
+    UPDATE report_expense AS r
+    SET
+      number = tmp.number,
+      date = tmp.date,
+      expense_name = tmp.expense_name,
+      sum = tmp.sum,
+      spr_currency = tmp.spr_currency,
+      file = tmp.file
+    FROM tmp_data AS tmp
+    WHERE r.id = tmp.id AND r.report_id = report_id
+    ON CONFLICT (id) DO UPDATE SET
+      number = EXCLUDED.number,
+      date = EXCLUDED.date,
+      expense_name = EXCLUDED.expense_name,
+      sum = EXCLUDED.sum,
+      spr_currency = EXCLUDED.spr_currency,
+      file = EXCLUDED.file;
+    DELETE FROM report_expense
+    WHERE report_id = report_id AND id NOT IN (SELECT id FROM tmp_data);
+    INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+    SELECT report_id, number, date, expense_name, sum, spr_currency, file
+    FROM tmp_data
+    WHERE id IS NULL;
+    RETURN QUERY SELECT id, number, date, expense_name, sum, spr_currency, file FROM report_expense WHERE report_id = report_id;
+    DROP TABLE tmp_data;
+END;
+$$;
+Обе функции выполняют те же действия: создают временную таблицу, заполняют ее данными из массива JSONB, обновляют данныев таблице report_expense с помощью оператора ON CONFLICT, удаляют строки, которые не были обновлены, добавляют новые строки и возвращают обновленные данные из таблицы report_expense. Разница в том, что функция в Django использует библиотеку psycopg2 для выполнения запросов к базе данных, а функция в PostgreSQL может быть выполнена напрямую в SQL-консоли или с помощью любой среды для работы с PostgreSQL.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 To create a PostgreSQL function that performs an insert on conflict update and delete for your Uploadfileformset, you can use the INSERT ... ON CONFLICT ... DO UPDATE and DELETE statements within a function. Here's an example of how you can achieve this:
 
 CREATE OR REPLACE FUNCTION update_uploadfileformset(
