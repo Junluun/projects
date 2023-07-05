@@ -24,6 +24,54 @@ BEGIN
     SELECT (d->>'id')::INT, d->>'number', d->>'date', d->>'expense_name', 
            (d->>'sum')::NUMERIC, d->>'spr_currency', d->>'file'
     FROM jsonb_array_elements(data) AS d;
+    INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+    SELECT report_id, number, date, expense_name, sum, spr_currency, file
+    FROM tmp_data
+    ON CONFLICT (id) DO UPDATE SET
+      number = EXCLUDED.number,
+      date = EXCLUDED.date,
+      expense_name = EXCLUDED.expense_name,
+      sum = EXCLUDED.sum,
+      spr_currency = EXCLUDED.spr_currency,
+      file = EXCLUDED.file;
+    DELETE FROM report_expense
+    WHERE report_id = report_id AND id NOT IN (SELECT id FROM tmp_data);
+    INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+    SELECT report_id, number, date, expense_name, sum, spr_currency, file
+    FROM tmp_data
+    WHERE id IS NULL;
+    RETURN QUERY SELECT id, number, date, expense_name, sum, spr_currency, file FROM report_expense WHERE report_id = report_id;
+    DROP TABLE tmp_data;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id INT, data JSONB)
+RETURNS TABLE (
+    id INT,
+    number TEXT,
+    date DATE,
+    expense_name TEXT,
+    sum NUMERIC,
+    spr_currency TEXT,
+    file TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    CREATE TEMPORARY TABLE tmp_data (
+      id INT,
+      number TEXT,
+      date DATE,
+      expense_name TEXT,
+      sum NUMERIC,
+      spr_currency TEXT,
+      file TEXT
+    );
+    INSERT INTO tmp_data (id, number, date, expense_name, sum, spr_currency, file)
+    SELECT (d->>'id')::INT, d->>'number', d->>'date', d->>'expense_name', 
+           (d->>'sum')::NUMERIC, d->>'spr_currency', d->>'file'
+    FROM jsonb_array_elements(data) AS d;
     UPDATE report_expense AS r
     SET
       number = tmp.number,
