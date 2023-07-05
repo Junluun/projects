@@ -1,3 +1,58 @@
+CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id INT, data JSONB)
+RETURNS TABLE (
+    id INT,
+    number TEXT,
+    date DATE,
+    expense_name TEXT,
+    sum NUMERIC,
+    spr_currency TEXT,
+    file TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    CREATE TEMPORARY TABLE tmp_data (
+      id INT,
+      number TEXT,
+      date DATE,
+      expense_name TEXT,
+      sum NUMERIC,
+      spr_currency TEXT,
+      file TEXT
+    );
+    INSERT INTO tmp_data (id, number, date, expense_name, sum, spr_currency, file)
+    SELECT (d->>'id')::INT, d->>'number', d->>'date', d->>'expense_name', 
+           (d->>'sum')::NUMERIC, d->>'spr_currency', d->>'file'
+    FROM jsonb_array_elements(data) AS d;
+    UPDATE report_expense AS r
+    SET
+      number = tmp.number,
+      date = tmp.date,
+      expense_name = tmp.expense_name,
+      sum = tmp.sum,
+      spr_currency = tmp.spr_currency,
+      file = tmp.file
+    FROM tmp_data AS tmp
+    WHERE r.id = tmp.id AND r.report_id = report_id
+    ON CONFLICT (id) DO UPDATE SET
+      number = EXCLUDED.number,
+      date = EXCLUDED.date,
+      expense_name = EXCLUDED.expense_name,
+      sum = EXCLUDED.sum,
+      spr_currency = EXCLUDED.spr_currency,
+      file = EXCLUDED.file;
+    DELETE FROM report_expense
+    WHERE report_id = report_id AND id NOT IN (SELECT id FROM tmp_data);
+    INSERT INTO report_expense (report_id, number, date, expense_name, sum, spr_currency, file)
+    SELECT report_id, number, date, expense_name, sum, spr_currency, file
+    FROM tmp_data
+    WHERE id IS NULL;
+    RETURN QUERY SELECT id, number, date, expense_name, sum, spr_currency, file FROM report_expense WHERE report_id = report_id;
+    DROP TABLE tmp_data;
+END;
+$$;
+
+
 Для обновления формсета UploadFileFormset в PostgreSQL вам необходимо выполнить следующие шаги:
 
 Создайте функцию с помощью оператора CREATE FUNCTION. В качестве аргументов функция должна принимать идентификатор отчета (report_id) и массив данных для обновления (data), который должен содержать информацию о каждой строке формсета (id, number, date, expense_name, sum, spr_currency, file).
