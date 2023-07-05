@@ -1,3 +1,44 @@
+
+from django.core.files.storage import FileSystemStorage
+import os
+
+# ...
+
+# Get the file upload field's value from the form
+file = e.cleaned_data['file']
+
+# If the form field isn't empty
+if file:
+    # Check if the file has changed
+    if e.instance.file != file:
+        # Create a FileSystemStorage object with overwrite=True
+        fs = FileSystemStorage(location='/path/to/your/upload/directory', overwrite=True)
+
+        # Save the file to the file system
+        file_path = fs.save(file.name, file)
+
+        # Close the file object to ensure it's written to disk
+        file.close()
+
+        # Delete the old file, if it exists
+        old_file_path = e.instance.file.path
+        if old_file_path and os.path.isfile(old_file_path):
+            os.remove(old_file_path)
+
+        # Update the instance with the new file
+        e.instance.file = file_path
+
+else:
+    # If the form field is empty, delete the file if it exists
+    old_file_path = e.instance.file.path
+    if old_file_path and os.path.isfile(old_file_path):
+        os.remove(old_file_path)
+
+    e.instance.file = None
+
+# ...
+
+
 CREATE OR REPLACE FUNCTION update_uploadfileformset(report_id INT, data JSONB)
 RETURNS TABLE (
     id INT,
