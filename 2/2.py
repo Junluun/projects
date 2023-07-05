@@ -1,3 +1,37 @@
+from django.core.files.storage import default_storage
+
+form = UploadFileFormset(request.POST or None, request.FILES or None, instance=rep)
+if form.is_valid():
+    form.instance.updated_by = request.user
+    expenses = []
+    instance = form.save(commit=False)
+    del_exp = [p.id for p in form.deleted_objects]
+    for e in form:
+        file = e.cleaned_data.get('file')
+        file_path = None
+        if file:
+            file_name = default_storage.get_available_name(file.name)
+            if file_name != e.instance.file.name:
+                # Delete old file if it exists
+                if e.instance.file:
+                    e.instance.file.delete()
+                # Save new file
+                e.instance.file = file
+                e.instance.save()
+                file_path = e.instance.file.name
+            else:
+                file_path = e.instance.file.name
+        expense = {
+            'id': e.instance.pk,
+            'number': e.cleaned_data['number'],
+            'date': e.cleaned_data['date'],
+            'expense_name': e.cleaned_data['expense_name'].id,
+            'sum': e.cleaned_data['sum'],
+            'spr_currency': e.cleaned_data['spr_currency'].id,
+            'file': file_path
+        }
+        expenses.append(expense)
+
 
 from django.core.files.storage import FileSystemStorage
 import os
