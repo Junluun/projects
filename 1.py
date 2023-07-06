@@ -1,3 +1,41 @@
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.forms import inlineformset_factory
+
+def my_view(request):
+    MyModelFormSet = inlineformset_factory(MyParentModel, MyModel, fields=('file', 'other_field'), extra=1)
+    if request.method == 'POST':
+        formset = MyModelFormSet(request.POST, request.FILES, instance=my_parent_model_instance)
+        if formset.is_valid():
+            # Iterate over the forms in the formset
+            for form in formset:
+                # Get the cleaned data from the form
+                data = form.cleaned_data
+                # Get the file from the form
+                file = data['file']
+                if file:
+                    # Generate a unique filename
+                    filename = default_storage.get_available_name(file.name)
+                    try:
+                        # Save the file to the storage backend
+                        default_storage.save(filename, ContentFile(file.read()))
+                    except FileExistsError:
+                        # Handle the case where the file already exists
+                        filename = default_storage.get_available_name(file.name)
+                        default_storage.save(filename, ContentFile(file.read()))
+                    # Create a new model instance with the file path and other fields
+                    my_model = form.save(commit=False)
+                    my_model.file = filename
+                    my_model.save()
+            # Return a success message to the user
+            return render(request, 'my_template.html', {'success': True})
+    else:
+        formset = MyModelFormSet(instance=my_parent_model_instance)
+    return render(request, 'my_template.html', {'formset': formset})
+
+
+
+
 from django.core.files.storage import FileSystemStorage
 
 # get the formset instance
