@@ -1,3 +1,41 @@
+from django.core.files.storage import FileSystemStorage
+
+def update_form_with_file(request, form, instance):
+    if request.method == 'POST':
+        form = MyForm(request.POST, request.FILES, instance=instance)
+
+        if form.is_valid():
+            uploaded_file = form.cleaned_data['file_field']
+            file_instance = form.instance.file_field
+            fs = FileSystemStorage()
+
+            if uploaded_file == file_instance.path:
+                # file has not changed, do nothing
+                file_path = file_instance.path
+            elif file_instance:
+                # save new file
+                if fs.exists(file_instance.path):
+                    fs.delete(file_instance.path)
+                file_path = fs.save(fs.get_available_name(uploaded_file.name), uploaded_file)
+            else:
+                # save new file
+                file_path = fs.save(fs.get_available_name(uploaded_file.name), uploaded_file)
+
+            # update file instance with new file path
+            form.instance.file_field = file_path
+            form.save()
+
+    # update form data with new file path
+    for field in form:
+        if field.name == 'file_field':
+            # get file instance for this field
+            file_instance = field.instance.file_field
+
+            # update field data with file path from instance
+            if file_instance:
+                field.data = file_instance.url
+
+    return form
 '''
 To overwrite the save method with a raw SQL query in your Django app, you can follow these steps:
 
