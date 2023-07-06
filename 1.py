@@ -1,5 +1,28 @@
 from django.core.files.storage import FileSystemStorage
 
+# get the formset instance
+formset = MyInlineFormSet(request.POST, request.FILES, instance=my_object)
+
+# iterate over each form in the formset
+for form in formset:
+    if form.cleaned_data.get('file_field') is None:
+        # if the file field is blank, delete the existing file from FileSystemStorage
+        filename = form.instance.file_field.name
+        fs = FileSystemStorage()
+        if fs.exists(filename):
+            fs.delete(filename)
+
+# call your PostgreSQL function to update the data in the database
+# your PostgreSQL function should accept the updated formset data as parameters
+
+# iterate over each form in the formset again and save the file to FileSystemStorage if the file field is not blank
+for form in formset:
+    if form.cleaned_data.get('file_field'):
+        fs = FileSystemStorage()
+        fs.save(form.instance.file_field.name, form.cleaned_data['file_field'])
+
+from django.core.files.storage import FileSystemStorage
+
 def update_form_with_file(request, form, instance):
     if request.method == 'POST':
         form = MyForm(request.POST, request.FILES, instance=instance)
