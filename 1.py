@@ -1,3 +1,39 @@
+from django.forms.models import inlineformset_factory
+
+def my_view(request):
+    MyModelFormSet = inlineformset_factory(MyModel, MyRelatedModel)
+    if request.method == 'POST':
+        formset = MyModelFormSet(request.POST, instance=my_instance)
+        if formset.is_valid():
+            # Удаляем объекты, помеченные для удаления
+            for form in formset.deleted_forms:
+                if not form.instance.pk:
+                    # Объект еще не сохранен в базе данных, поэтому нет необходимости его удалять
+                    continue
+                form.instance.delete()
+            formset.save()
+            # Редирект на другую страницу, если форма валидна
+        else:
+            # Если форма не прошла валидацию, удаляем объекты, которые были помечены для удаления, но не прошли валидацию
+            for form in formset.forms:
+                if form in formset.deleted_forms:
+                    continue
+                if not form.is_valid():
+                    formset.deleted_forms.append(form)
+            # Очищаем данные формы, чтобы скрытые строки не отправлялись на сервер
+            formset.data = formset.data.copy()
+            for form in formset.deleted_forms:
+                prefix = formset.add_prefix(form.prefix)
+                formset.data[prefix + '-DELETE'] = 'on'
+                for field in form.fields:
+                    formset.data[prefix + '-' + field] = ''
+    else:
+        formset = MyModelFormSet(instance=my_instance)
+    return render(request, 'my_template.html', {'formset': formset})
+
+
+
+
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.forms import inlineformset_factory
