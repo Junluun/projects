@@ -1,3 +1,32 @@
+
+<row>
+  <div class="col-12">This row will be hidden</div>
+  <div class="col-12">
+    <input type="checkbox">
+  </div>
+</row>
+<row>
+  <div class="col-12">This row will be hidden</div>
+  <div class="col-12">
+    <input type="checkbox">
+  </div>
+</row>
+
+<script>
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+
+  checkboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('click', function() {
+      const row = this.parentNode.parentNode;
+      if (this.checked) {
+        row.style.display = 'none';
+      } else {
+        row.style.display = 'block';
+      }
+    });
+  });
+</script>
+
 from django.forms.models import inlineformset_factory
 
 def my_view(request):
