@@ -1,3 +1,32 @@
+To set initial values for a multi-select field without using Django's ORM, you can use a list or tuple to represent the selected values. Here's an example of how you can set initial values for a multi-select field without using the ORM:
+
+```python
+from django.shortcuts import render
+
+def my_view(request):
+    initial_values = [1, 3, 5]  # A list of primary keys for selected objects
+    options = [(1, 'Option 1'), (2, 'Option 2'), (3, 'Option 3'), (4, 'Option 4'), (5, 'Option 5')]
+    context = {'my_field': options, 'selected_values': initial_values}
+    return render(request, 'my_template.html', context)
+```
+
+In this example, the view sets the initial values of a multi-select field called `my_field`. The initial values are represented as a list of primary keys for the selected objects. The view then manually creates a list of options, and passes it to the template as part of the `context` dictionary. The `selected_values` variable is also passed to the template to indicate which options should be selected.
+
+In the template, you can use a for loop to render the options for the multi-select field, and set the `selected` attribute for the options that match the initial values:
+
+```html
+<form>
+    <select multiple name="my_field">
+        {% for value, label in my_field %}
+            <option value="{{ value }}" {% if value in selected_values %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+</form>
+```
+
+Here, the `for` loop iterates over the list of options, and renders an `<option>` tag for each option. The `value` attribute of the `<option>` tag is set to the value of the option, and the `selected` attribute is set if the value matches one of the initial values.
+
+Note that this example assumes that the options for the multi-select field are fixed and do not change frequently. If the options are dynamic or come from a database, you may need to modify the code to retrieve the options and selected values from the appropriate source. Additionally, you may need to modify the template to match your specific use case.
 
 <row>
   <div class="col-12">This row will be hidden</div>
