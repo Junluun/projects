@@ -1,3 +1,29 @@
+
+if form.is_valid():
+    instance = form.save(commit=False)
+    fs = FileSystemStorage()
+    for e in form:
+        file_field = e.cleaned_data.get('file')
+        delete_field = e.cleaned_data.get('DELETE')
+        if delete_field:
+            try:
+                old_file = instance.file
+                if old_file:
+                    fs.delete(old_file.path)
+            except ValueError:
+                pass
+            instance.file = None
+        elif file_field:
+            if instance.file:
+                try:
+                    old_file = instance.file
+                    fs.delete(old_file.path)
+                except ValueError:
+                    pass
+            instance.file = fs.save(fs.get_available_name(file_field.name), file_field)
+    instance.save()
+
+
 for e in form:
     if e.cleaned_data.get('DELETE') is True:
         if e.instance.file:
