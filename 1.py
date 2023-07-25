@@ -3,6 +3,31 @@ if form.is_valid():
     fs = FileSystemStorage()
     for e in form:
         instance_file = e.instance.file
+        file = e.cleaned_data['file']
+        if 'DELETE' in e.cleaned_data and e.cleaned_data['DELETE'] == False:
+            if file:
+                if any(x in e.changed_data for x in ['file']):
+                    if instance_file:
+                        if fs.exists(instance_file.path):
+                            fs.delete(instance_file.path)
+                        file_path = fs.save(fs.get_available_name(file.name), file)
+                    else:
+                        file_path = fs.save(fs.get_available_name(file.name), file)
+                else:
+                    file_path = fs.save(fs.get_available_name(file.name), file)
+            else:
+                file_path = instance_file.name
+        else:
+            if instance_file:
+                if fs.exists(instance_file.path):
+                    instance_file.close()
+                    fs.delete(instance_file.path)
+
+if form.is_valid():
+    instance = form.save(commit=False)
+    fs = FileSystemStorage()
+    for e in form:
+        instance_file = e.instance.file
         file_path = None
         file = e.cleaned_data['file']
         if e.cleaned_data['DELETE'] == False:
