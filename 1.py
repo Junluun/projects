@@ -1,3 +1,36 @@
+import os
+
+fs = FileSystemStorage()
+
+for e in form:
+    instance_file = e.instance.file
+    file_path = None
+    file = e.cleaned_data['file_1']
+    
+    if e.cleaned_data['DELETE_1'] == False:
+        if file:
+            if any(x in e.changed_data for x in ['file_1']):
+                if instance_file:
+                    try:
+                        old_file = report_expense.objects.get(pk=e.instance.pk).file
+                        if old_file:
+                            with fs.open(old_file.name, 'rb') as f:
+                                fs.delete(old_file.name)
+                    except report_expense.DoesNotExist:
+                        pass
+                    file_path = fs.save(fs.get_available_name(file.name), file)
+                else:
+                    file_path = instance_file.name
+            else:
+                try:
+                    old_file = report_expense.objects.get(pk=e.instance.pk).file
+                    if old_file:
+                        with fs.open(old_file.name, 'rb') as f:
+                            fs.delete(old_file.name)
+                    old_file.close()
+                except report_expense.DoesNotExist:
+                    pass
+
 if form.is_valid():
     instance = form.save(commit=False)
     fs = FileSystemStorage()
