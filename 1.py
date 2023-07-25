@@ -1,3 +1,17 @@
+for e in form:
+    if e.cleaned_data.get('DELETE') is True:
+        if e.instance.file:
+            fs.delete(e.instance.file.path)
+        continue
+        
+    file = e.cleaned_data.get('file')
+    if file:
+        if e.instance.file:
+            fs.delete(e.instance.file.path)
+        file_path = fs.save(fs.get_available_name(file.name), file)
+    elif e.instance.file:
+        file_path = e.instance.file.name
+
 import os
 
 fs = FileSystemStorage()
