@@ -1,3 +1,31 @@
+To achieve the desired functionality of crossing out the link and showing a "Restore" button on button click, you can update the HTML and add JavaScript code. Here's an example of how you can modify the existing code:
+
+my_template.html:
+```html
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ formset.management_form }}
+  
+  {% for form in formset %}
+  {{ form.as_table }}
+  
+  {% if form.instance.filefield %}
+  <a href="{{ form.instance.filefield.value.url }}" target="_blank" class="file-link" id="file-link-{{ form.prefix }}">{{ form.instance.filefield.name }}</a>
+  <input type="checkbox" class="delete-checkbox" id="delete-checkbox-{{ form.prefix }}" name="deletefile">
+  <button type="button" class="btn restore-btn" id="restore-btn-{{ form.prefix }}" style="display: none" onclick="toggleDeletedFile(this.id)">Restore</button>
+  <button type="button" class="btn delete-btn" onclick="toggleDeleteFile(this, '{{ form.prefix }}')">Delete</button>
+  {% endif %}
+  
+  {% endfor %}
+  
+  <input type="submit" value="Save">
+</form>
+
+<script>
+  function toggleDeleteFile(buttonElement, formPrefix) {
+    const fileLinkElement = document.getElementById('file-link-' + formPrefix);
+    const deleteCheckboxElement = document.getElementById('delete-checkbox-' + formPrefix);
+    const restoreBtnElement = document.getElementById('restore-btn-' + formPrefix);
 
 if form.is_valid():
     instance = form.save(commit=False)
