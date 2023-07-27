@@ -1,3 +1,40 @@
+function checkFileExists(fileUrl) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('HEAD', fileUrl, false);
+  xhr.send();
+
+  return xhr.status !== 404;
+}
+
+function validateForm() {
+  var formset = document.getElementById('your-formset-id');
+  var rows = formset.querySelectorAll('.your-formset-row-class');
+
+  for (var i = 0; i < rows.length; i++) {
+    var fileInput = rows[i].querySelector('.your-file-input-class');
+    var fileUrl = fileInput.value;
+
+    if (fileUrl && !checkFileExists(fileUrl)) {
+      // Handle error here (e.g., show an alert message)
+      alert('File not found: ' + fileUrl);
+      return false; // Prevent form submission
+    }
+  }
+
+  return true; // Allow form submission
+}
+
+function DeleteFile(button) {
+  var fileInput = button.parentNode.querySelector('.your-file-input-class');
+  fileInput.value = ''; // Clear the file input field
+}
+
+function restoreDeletedFile(button) {
+  // Do something to restore the deleted file (e.g., show a file picker dialog)
+}
+
+
+
 import os
 
 def update_formset_with_file(formset):
