@@ -1,3 +1,42 @@
+import os
+
+def update_formset_with_file(formset):
+    fs = FileSystemStorage()
+    for form in formset:
+        if form.is_valid():
+            instance = form.save(commit=False)
+            deleted_objects = [p.exp_id for p in form.deleted_objects]
+            
+            # Check if the file field exists
+            if 'exp_file' in form.cleaned_data:
+                file = form.cleaned_data['exp_file']
+                instance_file = instance.exp_file
+                if form.cleaned_data['DELETE'] == False:
+                    if file:
+                        if any(x in form.changed_data for x in ['exp_file']):
+                            if instance_file:
+                                try:
+                                    old_file = Expense.objects.get(pk=instance.pk).exp_file
+                                    if old_file:
+                                        fs.delete(old_file.path)
+                                except Expense.DoesNotExist:
+                                    pass
+                                file_path = fs.save(fs.get_available_name(file.name), file)
+                            else:
+                                file_path = instance_file.name
+                    elif instance_file:
+                        file_path = instance_file.name
+                        
+                else:
+                    if instance_file:
+                        if fs.exists(instance_file.path):
+                            instance_file.close()
+                            fs.delete(instance_file.path)
+                            file_path = None
+            instance.save()
+
+
+
 To achieve the desired functionality of crossing out the link and showing a "Restore" button on button click, you can update the HTML and add JavaScript code. Here's an example of how you can modify the existing code:
 
 my_template.html:
