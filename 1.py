@@ -1,3 +1,110 @@
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <!-- Поле выбора страны -->
+  <select id="countrySelect" name="country">
+    <option value="">---------</option>
+    {% for country_id, country_name in country_choices %}
+      <option value="{{ country_id }}">{{ country_name }}</option>
+    {% endfor %}
+  </select>
+  <!-- Поле выбора региона -->
+  <select id="regionSelect" name="region" disabled>
+    <option value="">---------</option>
+  </select>
+  <!-- Поле выбора города -->
+  <select id="citySelect" name="city" disabled>
+    <option value="">---------</option>
+  </select>
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+  // Получение ссылок на элементы формы
+  const countrySelect = document.getElementById('countrySelect');
+  const regionSelect = document.getElementById('regionSelect');
+  const citySelect = document.getElementById('citySelect');
+
+  // Обработчик изменения выбранной страны
+  countrySelect.addEventListener('change', function() {
+    const countryId = countrySelect.value;
+    if (countryId) {
+      // Активация поля выбора региона
+      regionSelect.disabled = false;
+      // Очистка и заполнение списка регионов
+      regionSelect.innerHTML = '<option value="">---------</option>';
+      const regions = getRegions(countryId);
+      for (const region of regions) {
+        const option = document.createElement('option');
+        option.value = region.id;
+        option.textContent = region.name;
+        regionSelect.appendChild(option);
+      }
+      // Очистка и деактивация списка городов
+      citySelect.innerHTML = '<option value="">---------</option>';
+      citySelect.disabled = true;
+    } else {
+      // Очистка и деактивация полей выбора региона и города
+      regionSelect.innerHTML = '<option value="">---------</option>';
+      regionSelect.disabled = true;
+      citySelect.innerHTML = '<option value="">---------</option>';
+      citySelect.disabled = true;
+    }
+  });
+
+  // Обработчик изменения выбранного региона
+  regionSelect.addEventListener('change', function() {
+    const regionId = regionSelect.value;
+    if (regionId) {
+      // Активация поля выбора города
+      citySelect.disabled = false;
+      // Очистка и заполнение списка городов
+      citySelect.innerHTML = '<option value="">---------</option>';
+      const cities = getCities(regionId);
+      for (const city of cities) {
+        const option = document.createElement('option');
+        option.value = city.id;
+        option.textContent = city.name;
+        citySelect.appendChild(option);
+      }
+    } else {
+      // Очистка и деактивация списка городов
+      citySelect.innerHTML = '<option value="">---------</option>';
+      citySelect.disabled = true;
+    }
+  });
+
+  // Функция для получения списка регионов через AJAX
+  function getRegions(countryId) {
+    // Замените URL на ваше соответствующее представление Django
+    const url = `/load_regions/?country_id=${countryId}`;
+    // Выполнение AJAX-запроса
+    return fetch(url)
+      .then(response => response.json())
+      .then(data => data.regions)
+      .catch(error => {
+        console.error('Error:', error);
+        return [];
+      });
+  }
+
+  // Функция для получения списка городов через AJAX
+  function getCities(regionId) {
+    // Замените URL на ваше соответствующее представление Django
+    const url = `/load_cities/?region_id=${regionId}`;
+    // Выполнение AJAX-запроса
+    return fetch(url)
+      .then(response => response.json())
+      .then(data => data.cities)
+      .catch(error => {
+        console.error('Error:', error);
+        return [];
+      });
+  }
+</script>
+
+
+
 function checkFileExists(fileUrl) {
   var xhr = new XMLHttpRequest();
   xhr.open('HEAD', fileUrl, false);
