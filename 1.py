@@ -1,3 +1,90 @@
+<select id="countryDropdown" name="country">
+    <option value="">Select country</option>
+    {% for country in countries %}
+        <option value="{{ country.id }}">{{ country.name }}</option>
+    {% endfor %}
+</select>
+<br>
+
+<select id="regionDropdown" name="region">
+    <option value="">Select region</option>
+</select>
+<br>
+
+<select id="cityDropdown" name="city">
+    <option value="">Select city</option>
+</select>
+<br>
+
+<script>
+    document.getElementById('countryDropdown').addEventListener('change', function() {
+        var countryId = this.value;
+        var regionDropdown = document.getElementById('regionDropdown');
+        var cityDropdown = document.getElementById('cityDropdown');
+
+        // Reset region and city dropdowns
+        regionDropdown.innerHTML = '<option value="">Select region</option>';
+        cityDropdown.innerHTML = '<option value="">Select city</option>';
+
+        if (countryId) {
+            // Fetch regions based on the selected country
+            fetch('/get_regions/?country_id=' + countryId)
+                .then(response => response.json())
+                .then(regions => {
+                    regions.forEach(function(region) {
+                        var option = document.createElement('option');
+                        option.value = region.id;
+                        option.text = region.name;
+                        regionDropdown.appendChild(option);
+                    });
+                });
+        }
+    });
+
+    document.getElementById('regionDropdown').addEventListener('change', function() {
+        var regionId = this.value;
+        var cityDropdown = document.getElementById('cityDropdown');
+
+        // Reset city dropdown
+        cityDropdown.innerHTML = '<option value="">Select city</option>';
+
+        if (regionId) {
+            // Fetch cities based on the selected region
+            fetch('/get_cities/?region_id=' + regionId)
+                .then(response => response.json())
+                .then(cities => {
+                    cities.forEach(function(city) {
+                        var option = document.createElement('option');
+                        option.value = city.id;
+                        option.text = city.name;
+                        cityDropdown.appendChild(option);
+                    });
+                });
+        }
+    });
+</script>
+
+
+from django.http import JsonResponse
+from .models import Region, City
+
+def get_regions(request):
+    country_id = request.GET.get('country_id')
+    regions = Region.objects.filter(country_id=country_id).values('id', 'name')
+    return JsonResponse(list(regions), safe=False)
+
+def get_cities(request):
+    region_id = request.GET.get('region_id')
+    cities = City.objects.filter(region_id=region_id).values('id', 'name')
+    return JsonResponse(list(cities), safe=False)
+
+urlpatterns = [
+    path('select_location/', select_location, name='select_location'),
+    path('get_regions/', get_regions, name='get_regions'),
+    path('get_cities/', get_cities, name='get_cities'),
+]
+
+
 <form method="GET" action="{% url 'select_location' %}">
     <select name="country">
         <option value="">Select country</option>
