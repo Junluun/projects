@@ -1,3 +1,71 @@
+<form method="GET" action="{% url 'select_location' %}">
+    <select name="country">
+        <option value="">Select country</option>
+        {% for country in countries %}
+            <option value="{{ country.id }}">{{ country.name }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    
+    {% if regions %}
+        <select name="region">
+            <option value="">Select region</option>
+            {% for region in regions %}
+                <option value="{{ region.id }}">{{ region.name }}</option>
+            {% endfor %}
+        </select>
+        <br>
+    {% endif %}
+    
+    {% if cities %}
+        <select name="city">
+            <option value="">Select city</option>
+            {% for city in cities %}
+                <option value="{{ city.id }}">{{ city.name }}</option>
+            {% endfor %}
+        </select>
+        <br>
+    {% endif %}
+
+    <input type="submit" value="Submit">
+</form>
+
+
+
+<form method="GET" action="{% url 'select_location' %}">
+    <select name="country">
+        <option value="">Select country</option>
+        {% for country in countries %}
+            <option value="{{ country.id }}">{{ country.name }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    
+    {% if regions %}
+        <select name="region">
+            <option value="">Select region</option>
+            {% for region in regions %}
+                <option value="{{ region.id }}">{{ region.name }}</option>
+            {% endfor %}
+        </select>
+        <br>
+    {% endif %}
+    
+    {% if cities %}
+        <select name="city">
+            <option value="">Select city</option>
+            {% for city in cities %}
+                <option value="{{ city.id }}">{{ city.name }}</option>
+            {% endfor %}
+        </select>
+        <br>
+    {% endif %}
+
+    <input type="submit" value="Submit">
+</form>
+
+
+
 <form method="post">
   {% csrf_token %}
   {{ form.as_p }}
