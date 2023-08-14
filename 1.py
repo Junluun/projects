@@ -1,4 +1,56 @@
-<select id="countryDropdown" name="country">
+// JavaScript code
+document.getElementById('countryDropdown').addEventListener('change', function() {
+    var countryId = this.value;
+    var regionDropdown = document.getElementById('regionDropdown');
+    var regionFstList = regionDropdown.nextElementSibling.lastElementChild.lastElementChild;
+    var cityDropdown = document.getElementById('cityDropdown');
+    regionDropdown.innerHTML = regionFstList.innerHTML = cityDropdown.innerHTML =
+        '<option value="">Выберите регион</option>' +
+        '<div data-value="">Выберите регион</option>' +
+        '<option value="***">Выберите город</option>';
+    console.log(countryId);
+    if (countryId) {
+        // Fetch regions based on the selected country
+        fetch('/get_regions/?country_id=' + countryId)
+            .then(response => response.json())
+            .then(regions => {
+                regions.forEach(function(region) {
+                    var option = document.createElement('option');
+                    option.value = region.dreg_id;
+                    option.text = region.dreg_name;
+                    var option1 = document.createElement('div');
+                    option1.setAttribute('data-value', region.dreg_id);
+                    option1.innerHTML += region.dreg_name;
+                    regionDropdown.appendChild(option);
+                    regionFstList.appendChild(option1);
+                });
+            });
+    }
+});
+
+document.getElementById('regionDropdown').addEventListener('change', function() {
+    var regionId = this.value;
+    var cityDropdown = document.getElementById('cityDropdown');
+    var cityFstList = cityDropdown.nextElementSibling.lastElementChild.lastElementChild;
+    cityDropdown.innerHTML = '<option value="">Выберите город</option>';
+    if (regionId) {
+        // Fetch cities based on the selected region
+        fetch('/get_cities/?region_id=' + regionId)
+            .then(response => response.json())
+            .then(cities => {
+                cities.forEach(function(city) {
+                    var option = document.createElement('option');
+                    option.value = city.deit_id;
+                    option.text = city.deit_name;
+                    var option1 = document.createElement('div');
+                    option1.setAttribute('data-value', city.deit_id);
+                    option1.innerHTML += city.deit_name;
+                    cityDropdown.appendChild(option);
+                    cityFstList.appendChild(option1);
+                });
+            });
+    }
+});<select id="countryDropdown" name="country">
     <option value="">Select country</option>
     {% for country in countries %}
         <option value="{{ country.id }}">{{ country.name }}</option>
