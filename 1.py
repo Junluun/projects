@@ -1,3 +1,38 @@
+Чтобы в Django создать возможность загружать несколько файлов с помощью input type="file", вам понадобится использовать JavaScript для динамического добавления новых инпутов при выборе файла. Вот пример, как можно реализовать такую функциональность:
+
+HTML:
+<form method="post" enctype="multipart/form-data">
+  <div id="fileInputsContainer">
+    <input type="file" name="files[]" id="fileInput" multiple>
+  </div>
+  <button type="button" id="addFileInput">Добавить файл</button>
+  <button type="submit">Отправить</button>
+</form>
+
+
+JavaScript:
+document.getElementById("addFileInput").addEventListener("click", function() {
+  var container = document.getElementById("fileInputsContainer");
+  var newInput = document.createElement("input");
+  newInput.type = "file";
+  newInput.name = "files[]";
+  container.appendChild(newInput);
+});
+
+
+В этом примере мы создали форму, включающую контейнер с id="fileInputsContainer", содержащий первый input type="file" с name="files[]" для загрузки файлов.
+
+Затем мы добавили кнопку с id="addFileInput". При нажатии на эту кнопку, с помощью JavaScript создается новый input type="file", и он добавляется в контейнер.
+
+Теперь, каждый раз при нажатии на кнопку "Добавить файл", будет появляться новый input type="file" для загрузки дополнительных файлов.
+
+На сервере вам также понадобится обработать загруженные файлы в соответствии с вашими потребностями. В Django для обработки множественной загрузки файлов, вам может потребоваться использовать форму с FileField или FileField в сочетании с MultiValueField.
+
+Однако помните, что загрузка файлов требует дополнительной обработки на стороне сервера, включая проверку безопасности и обработку загруженных данных. Убедитесь, что вы применяете соответствующие меры безопасности при обработке файлов, чтобы предотвратить возможные атаки.
+
+Надеюсь, это поможет вам создать возможность загружать несколько файлов в Django. Если у вас возникнут дополнительные вопросы, пожалуйста, не стесняйтесь задавать их!
+
+
 // JavaScript code
 document.getElementById('countryDropdown').addEventListener('change', function() {
     var countryId = this.value;
