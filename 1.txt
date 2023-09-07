@@ -1,3 +1,63 @@
+Для того чтобы найти этап (stage) с наименьшим приоритетом, у которого не указана дата окончания (date_end), можно использовать SQL запрос с сочетанием объединения таблиц и оператора IS NULL (проверка что поле пустое, т.е. не заполнено). По Вашему запросу, можно составить такой SQL код: 
+
+SELECT 
+    sph.sph_id,
+    sph.st_id,
+    sph.date_begin,
+    sph.date_end,
+    rs.stgr_id,
+    rs.st_priority,
+    rsg.stgr_priority
+FROM 
+    stage_pass_history sph
+INNER JOIN 
+    ref_stage rs ON sph.st_id = rs.st_id
+INNER JOIN 
+    ref_stage_group rsg ON rs.stgr_id = rsg.stgr_id
+WHERE 
+    rs.st_priority = 
+    (
+        SELECT 
+            MIN(rs.st_priority)
+        FROM 
+            ref_stage rs 
+        INNER JOIN 
+            stage_pass_history sph ON rs.st_id = sph.st_id
+        WHERE 
+            sph.date_end IS NULL
+    )
+    AND 
+    rsg.stgr_priority = 
+    (
+        SELECT 
+            MIN(rsg.stgr_priority)
+        FROM  
+            ref_stage_group rsg
+        INNER JOIN 
+            ref_stage rs ON rsg.stgr_id = rs.stgr_id
+        WHERE 
+            rs.st_id IN 
+            (
+                SELECT
+                    st_id
+                FROM 
+                    stage_pass_history
+                WHERE 
+                    date_end IS NULL
+            )
+    )
+    AND 
+    sph.date_end IS NULL
+ORDER BY 
+    rs.st_priority,
+    rsg.stgr_priority;
+
+
+Цель этого запроса -- выбрать те строки, где стадия (stage) имеет наименьший приоритет (st_priority), где имеется минимальный приоритет групп (stgr_priority) и дата окончания (date_end) в таблице stage_pass_history не заполнена. Если есть несколько строк, которые удовлетворяют этим условиям, то они все будут выбраны. Можно добавить LIMIT 1 в конце, если вам нужна только одна строка. 
+
+Обратите внимание, что запрос предполагает, что отсутствующие значения date_end представлены в виде NULL в таблице stage_pass_history. Если отсутствующие значения представлены по-другому, запрос может понадобится откорректировать.
+
+
 Далее предоставлен уточненный алгоритм, который учитывает присвоение значения date_begin только этапам с минимальным приоритетом и минимальным приоритетом группы.
 
 1. Выберите маршрут из таблицы "ref_route".
