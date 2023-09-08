@@ -1,3 +1,43 @@
+Извините за недопонимание в предыдущем запросе. При попытке выбрать минимальный приоритет этапа, я извлек минимальный приоритет этапа из всех доступных, а не из тех, у которых значение date_end равно NULL.
+
+Давайте скорректируем наш запрос следующим образом:
+
+WITH filtered_history AS (
+  SELECT * FROM stage_pass_history
+  WHERE sph_date_begin IS NULL AND sph_date_end IS NULL
+),
+
+minimal_group AS (
+  SELECT MIN(stgr_priority) AS min_stgr_priority 
+  FROM ref_stage_group
+  JOIN ref_stage ON ref_stage.stgr_id = ref_stage_group.stgr_id
+  JOIN filtered_history ON filtered_history.st_id = ref_stage.st_id
+),
+
+minimal_stage_in_min_group AS (
+  SELECT MIN(st_priority) AS min_st_priority 
+  FROM ref_stage
+  JOIN minimal_group ON ref_stage.stgr_id = minimal_group.min_stgr_priority
+  JOIN filtered_history ON filtered_history.st_id = ref_stage.st_id
+)
+
+SELECT filtered_history.sph_id, filtered_history.sph_date_begin, filtered_history.sph_date_end, 
+  filtered_history.st_id, ref_stage.name AS stage_name
+FROM filtered_history
+JOIN minimal_stage_in_min_group ON filtered_history.st_id = minimal_stage_in_min_group.min_st_priority
+JOIN ref_stage ON filtered_history.st_id = ref_stage.st_id;
+
+
+Логика здесь в следующем:
+
+- Мы сначала создаем CTE (Common Table Expression), который называется "filteredhistory", в котором сохраняем все записи из stagepasshistory, где `datebegin и dateend` равны NULL. 
+
+- Затем мы создаем CTE "minimalgroup", который получит минимальную группу из filtered_history.
+
+- Затем мы создаем CTE "minimalstageinmingroup", который из групп с минимальным приоритетом получит этапы с минимальным приоритетом.
+
+- Наконец, мы используем эти CTE в нашем основном SQL-запросе для выбора необходимых записей, соответствующих вашему исходному условию.
+
 Приношу извинения за путаницу ранее. В таком случае, вам потребуется добавить ещё один уровень подзапроса, чтобы сначала найти минимальную группу, а затем минимальный этап внутри этой группы. Попробуйте следующий SQL-запрос:
 
 ```sql
