@@ -1,3 +1,33 @@
+Приношу извинения за путаницу ранее. В таком случае, вам потребуется добавить ещё один уровень подзапроса, чтобы сначала найти минимальную группу, а затем минимальный этап внутри этой группы. Попробуйте следующий SQL-запрос:
+
+```sql
+SELECT sph.sph_id, sph.sph_date_begin, sph.sph_date_end, sph.st_id, rs.name 
+FROM stage_pass_history sph
+JOIN ref_stage rs ON sph.st_id = rs.st_id
+JOIN ref_stage_group rsg ON rs.stgr_id = rsg.stgr_id
+WHERE sph.sph_date_begin IS NULL
+  AND sph.sph_date_end IS NULL
+  AND rs.stgr_id =
+    (SELECT rs_inner.stgr_id
+    FROM ref_stage rs_inner
+    JOIN ref_stage_group rsg_inner ON rs_inner.stgr_id = rsg_inner.stgr_id
+    WHERE rsg_inner.stgr_priority = 
+      (SELECT MIN(stgr_priority) FROM ref_stage_group)
+    LIMIT 1)
+  AND rs.st_priority =
+    (SELECT MIN(rs_inner.st_priority)
+    FROM ref_stage rs_inner
+    WHERE rs_inner.stgr_id = rs.stgr_id
+    LIMIT 1);
+```
+
+В этом запросе первым шагом было добавление нового подзапроса на выбор минимального stgr_priority из таблицы ref_stage_group, которое используется для определения stgr_id минимальной группы. 
+
+Затем, это значение stgr_id используется в основной выборке для фильтрации записей только из этой группы и во внутреннем подзапросе для выбора этапа с минимальным приоритетом. 
+
+В итоге, основной запрос выберет те записи, где начало и конец этапа (sph_date_begin и sph_date_end) равны NULL, и этап является этапом с наименьшим приоритетом в группе с наименьшим приоритетом.
+
+
 Приношу извинения за предыдущую ошибку. Чтобы найти записи с самым низким приоритетом этапа среди записей с NULL значениями для date_begin и date_end, вы можете использовать следующий запрос:
 
 SELECT stage_pass_history.sph_id, stage_pass_history.sph_date_begin, stage_pass_history.sph_date_end,
