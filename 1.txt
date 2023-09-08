@@ -1,3 +1,29 @@
+Приношу извинения за предыдущую ошибку. Чтобы найти записи с самым низким приоритетом этапа среди записей с NULL значениями для date_begin и date_end, вы можете использовать следующий запрос:
+
+SELECT stage_pass_history.sph_id, stage_pass_history.sph_date_begin, stage_pass_history.sph_date_end,
+    stage_pass_history.st_id, stage.name AS stage_name
+FROM stage_pass_history
+JOIN ref_stage stage ON stage_pass_history.st_id = stage.st_id
+WHERE stage_pass_history.sph_date_begin IS NULL
+    AND stage_pass_history.sph_date_end IS NULL
+    AND stage.st_id = (
+        SELECT st.st_id
+        FROM stage_pass_history sph
+        JOIN ref_stage st ON sph.st_id = st.st_id
+        WHERE sph.sph_date_begin IS NULL
+            AND sph.sph_date_end IS NULL
+        ORDER BY st.st_priority, sph.sph_id
+        LIMIT 1
+    )
+
+
+В этом запросе мы сначала выбираем записи из stage_pass_history с NULL значениями для sph_date_begin и sph_date_end. Затем мы фильтруем записи, чтобы выбрать только те, у которых st_id равно минимальному st_id с наименьшим приоритетом этапа.
+
+Для нахождения записи с минимальным приоритетом этапа и минимальным st_id среди записей с NULL значениями, мы используем вложенный подзапрос. В этом подзапросе мы также выбираем записи с NULL значениями для sph_date_begin и sph_date_end, затем сортируем их по st_priority, а затем по sph_id в порядке возрастания, чтобы найти минимальный приоритет среди них. Затем мы ограничиваем результаты только одной записью с помощью LIMIT 1.
+
+Таким образом, запрос вернет записи только с минимальным приоритетом этапа среди записей с NULL значениями для date_begin и date_end.
+
+
 Понял, ваше условие отбора записей из таблицы stage_pass_history должно быть проведено в начале. 
 
 Давайте попробуем изменить запрос следующим образом:
