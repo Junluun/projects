@@ -1,3 +1,38 @@
+Понял, ваше условие отбора записей из таблицы stage_pass_history должно быть проведено в начале. 
+
+Давайте попробуем изменить запрос следующим образом:
+
+```sql
+WITH filtered_history AS (
+  SELECT * FROM stage_pass_history
+  WHERE sph_date_begin IS NULL AND sph_date_end IS NULL
+)
+
+SELECT filtered_history.sph_id, filtered_history.sph_date_begin, filtered_history.sph_date_end, 
+  filtered_history.st_id, ref_stage.name AS stage_name
+
+FROM ref_stage_group
+  
+INNER JOIN ref_stage ON ref_stage_group.stgr_id = ref_stage.stgr_id
+
+INNER JOIN filtered_history ON filtered_history.st_id = ref_stage.st_id
+
+WHERE ref_stage_group.stgr_priority = 
+  (SELECT MIN(stgr_priority) FROM ref_stage_group)
+  
+AND ref_stage.st_priority = 
+  (SELECT MIN(st_priority) FROM ref_stage WHERE stgr_id = ref_stage_group.stgr_id);
+
+```
+
+Сначала мы делаем подзапрос (называемый здесь filtered_history), где выбираем все записи из stage_pass_history, в которых date_begin и date_end равны NULL. Затем мы присоединяем этот подзапрос к таблицам ref_stage и ref_stage_group.
+
+В конечной выборке, мы фильтруем записи таким образом, чтобы эта запись принадлежала к группе с наименьшим приоритетом (MIN(stgr_priority) из таблицы ref_stage_group), а внутри этой группы обладала наименьшим приоритетом этапа (MIN(st_priority) из ref_stage).
+
+Таким образом, мы получим записи, у которых date_begin и date_end NULL, которые принадлежат то группе с минимальным приоритетом, и из этой группы обладают минимальным приоритетом этапа.
+
+
+
 Для того чтобы найти этап (stage) с наименьшим приоритетом, у которого не указана дата окончания (date_end), можно использовать SQL запрос с сочетанием объединения таблиц и оператора IS NULL (проверка что поле пустое, т.е. не заполнено). По Вашему запросу, можно составить такой SQL код: 
 
 SELECT 
