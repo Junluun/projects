@@ -1,3 +1,36 @@
+-- Получение параметров rut_id и rrcc_id от пользователя
+DECLARE
+  v_rut_id INT;
+  v_rrcc_id INT;
+BEGIN
+  -- Указываете значения переменных v_rut_id и v_rrcc_id в соответствии с вашими требованиями
+  v_rut_id := 1;
+  v_rrcc_id := 1;
+  
+  -- Вставка записей в relation_stage_history
+  INSERT INTO relation_stage_history (rrcc_id, st_id, rsh_date_begin, rsh_date_end)
+  SELECT v_rrcc_id, rs.st_id, NULL, NULL
+  FROM ref_route_structure ruts
+  INNER JOIN ref_stage_group rsg ON ruts.stgr_id = rsg.stgr_id
+  INNER JOIN ref_stage rs ON rsg.stgr_id = rs.stgr_id
+  WHERE ruts.rut_id = v_rut_id
+  ORDER BY rsg.stgr_priority ASC, rs.st_priority ASC
+  LIMIT 1;
+  
+  -- Вставка записей в stage_pass_history
+  INSERT INTO stage_pass_history (cc_id, st_id, sph_date_begin, sph_date_end)
+  SELECT cc_id, rs.st_id, NULL, NULL
+  FROM candidate_card cc
+  INNER JOIN relation_request rr ON cc.cc_id = rr.cc_id
+  INNER JOIN relation_stage_history rsh ON rr.rrcc_id = rsh.rrcc_id
+  INNER JOIN ref_stage rs ON rsh.st_id = rs.st_id
+  WHERE rr.rrcc_id = v_rrcc_id
+    AND rs.st_id IN (SELECT st_id FROM relation_stage_history WHERE rrcc_id = v_rrcc_id)
+    AND rs.st_id NOT IN (SELECT st_id FROM stage_pass_history WHERE cc_id = cc.cc_id)
+    AND rsh.rsh_date_begin IS NOT NULL
+    AND rsh.rsh_date_end IS NULL;
+END;
+
 
 Для заполнения таблиц relation_stage_history и stage_pass_history в зависимости от выбранного ref_route, вам потребуется сочетание SQL-запросов и операторов цикла для обработки каждого этапа st_id в заданном маршруте rut_id. Вот примерный алгоритм, который вы можете использовать для этой задачи:
 
