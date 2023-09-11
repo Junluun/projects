@@ -1,3 +1,22 @@
+UPDATE stages
+SET date_begin = current_date
+WHERE st_id IN (
+  SELECT st_id
+  FROM stages
+  WHERE stgr_priority = (
+    SELECT MIN(stgr_priority)
+    FROM stages
+  )
+  AND st_priority = (
+    SELECT MIN(st_priority)
+    FROM stages
+    WHERE stgr_priority = (
+      SELECT MIN(stgr_priority)
+      FROM stages
+    )
+  )
+);
+
 -- Получение параметров rut_id и rrcc_id от пользователя
 DECLARE
   v_rut_id INT;
