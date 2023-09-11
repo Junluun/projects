@@ -1,3 +1,71 @@
+
+Для заполнения таблиц relation_stage_history и stage_pass_history в зависимости от выбранного ref_route, вам потребуется сочетание SQL-запросов и операторов цикла для обработки каждого этапа st_id в заданном маршруте rut_id. Вот примерный алгоритм, который вы можете использовать для этой задачи:
+
+DECLARE
+  curr_st_id INT;
+  curr_st_priority INT;
+  curr_stgr_id INT;
+  curr_stgr_priority INT;
+  is_for_request BOOLEAN;
+  rsh_id INT;
+  sph_id INT;
+  curr_date DATE;
+BEGIN
+  -- Получить текущую дату
+  curr_date := current_date;
+
+  -- Получить этапы для выбранного маршрута
+  FOR curr_st_id, curr_st_priority, curr_stgr_id, curr_stgr_priority, is_for_request IN (
+    SELECT rs.st_id, rs.st_priority, rs.stgr_id, rsg.stgr_priority, rsg.is_for_request
+    FROM ref_route_structure rrs
+    JOIN ref_route rr ON rrs.rut_id = rr.rut_id
+    JOIN ref_stage rs ON rrs.st_id = rs.st_id
+    JOIN ref_stage_group rsg ON rs.stgr_id = rsg.stgr_id
+    WHERE rr.rut_id = <выбранный rut_id>
+    ORDER BY rsg.stgr_priority ASC, rs.st_priority ASC
+  ) LOOP
+    IF is_for_request THEN
+      -- Вставить запись в таблицу relation_stage_history
+      INSERT INTO relation_stage_history (rrcc_id, st_id, rsh_date_begin)
+      VALUES (<значение rrcc_id>, curr_st_id, curr_date)
+      RETURNING rsh_id INTO rsh_id;
+    ELSE
+      -- Вставить запись в таблицу stage_pass_history
+      INSERT INTO stage_pass_history (cc_id, st_id, sph_date_begin)
+      VALUES (<значение cc_id>, curr_st_id, curr_date)
+      RETURNING sph_id INTO sph_id;
+    END IF;
+
+    -- Обновить дату окончания предыдущего этапа (если есть)
+    IF rsh_id IS NOT NULL THEN
+      UPDATE relation_stage_history
+      SET rsh_date_end = curr_date
+      WHERE rsh_id = rsh_id;
+    ELSIF sph_id IS NOT NULL THEN
+      UPDATE stage_pass_history
+      SET sph_date_end = curr_date
+      WHERE sph_id = sph_id;
+    END IF;
+
+    -- Установить текущую дату в новую дату начала для следующего этапа
+    curr_date := curr_date + INTERVAL '1 day';
+  END LOOP;
+END;
+
+
+Прежде чем использовать этот алгоритм, вам необходимо заменить <выбранный rut_id>, <значение rrcc_id> и <значение cc_id> на соответствующие значения вашего контекста.
+
+Этот алгоритм:
+- Использует цикл FOR для обработки каждого этапа st_id в выбранном маршруте rut_id.
+- В зависимости от значения is_for_request (True или False), выполняет вставку записи в таблицу relation_stage_history или stage_pass_history.
+- Обновляет дату окончания предыдущего этапа (если есть) соответствующим образом.
+- Устанавливает новую дату начала curr_date для следующего этапа.
+
+Обратите внимание, что вам также необходимо проверить и внести необходимые изменения в запросы для получения значений <значение rrcc_id> и <значение cc_id> в соответствии с вашей базой данных и бизнес-логикой.
+
+Пожалуйста, убедитесь, что вы указали таблицы, столбцы и ограничения правильно в соответствии с вашей базой данных. Если у вас возникнут дополнительные вопросы, пожалуйста, дайте мне знать!
+
+
 Извините за недопонимание в предыдущем запросе. При попытке выбрать минимальный приоритет этапа, я извлек минимальный приоритет этапа из всех доступных, а не из тех, у которых значение date_end равно NULL.
 
 Давайте скорректируем наш запрос следующим образом:
