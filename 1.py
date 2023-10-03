@@ -1,3 +1,47 @@
+Если бы вы хотели экспортировать данные в файл Excel при нажатии кнопки, вы бы добавили процедуру ExportDataSetToExcel в обработчик события OnClick для этой кнопки. Допустим, у вас есть кнопка на форме, которую вы назвали Button1, и датасет, который вы хотите экспортировать, назван DataSet1. Ниже приведён пример, как это сделать:
+
+Во-первых, в основой части вашего модуля объявите процедуру ExportDataSetToExcel:
+
+uses
+  ..., frxClass, frxExportXLS;
+
+procedure TForm1.ExportDataSetToExcel(dataset: TDataSet; fileName: string);
+var
+  report: TfrxReport;
+  xlsExport: TfrxXLSExport;
+begin
+  report := TfrxReport.Create(nil);
+  xlsExport := TfrxXLSExport.Create(nil);
+
+  try
+    report.DataSets.Add(dataset); // Добавляем датасет в отчет
+    report.PrepareReport();
+
+    xlsExport.FileName := fileName;
+    xlsExport.OptimizeColumnsWidth := True;
+
+    report.Export(xlsExport);
+  finally
+    report.Free;
+    xlsExport.Free;
+  end;
+end;
+
+
+Затем добавьте обработчик события OnClick для вашей кнопки Button1:
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  // Запускаем экспорт в Excel при клике на кнопку
+  // Замените 'output.xlsx' на имя файла, который вам нужен
+  ExportDataSetToExcel(DataSet1, 'output.xlsx');
+end;
+
+
+Теперь при каждом нажатии кнопки Button1 выбранный вами набор данных будет экспортироваться в файл Excel.
+
+
+
 Чтобы в Django создать возможность загружать несколько файлов с помощью input type="file", вам понадобится использовать JavaScript для динамического добавления новых инпутов при выборе файла. Вот пример, как можно реализовать такую функциональность:
 
 HTML:
