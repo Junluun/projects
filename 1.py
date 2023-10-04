@@ -1,3 +1,58 @@
+import
+  ComObj, Variants, Dialogs;
+
+procedure ExportGridToODS(Grid: TDBGrid);
+var
+  ExcelApp: Variant;
+  Sheet: Variant;
+  i, j: Integer;
+  SaveDialog: TSaveDialog;
+begin
+  SaveDialog := TSaveDialog.Create(nil);
+  SaveDialog.Filter := 'ODS files (.ods)|.ods';
+  SaveDialog.DefaultExt := 'ods';
+
+  if SaveDialog.Execute then
+  begin
+    ExcelApp := CreateOleObject('Excel.Application');
+    ExcelApp.Visible := False;
+  
+    ExcelApp.Workbooks.Add;
+    Sheet := ExcelApp.Workbooks1.WorkSheets1;
+  
+    // Write column headers
+    for i := 0 to Grid.Columns.Count - 1 do
+      Sheet.Cells1, i+1.Value := Grid.Columnsi.Title.Caption;
+  
+    // Write data from the Grid
+    for i := 0 to Grid.DataSource.DataSet.RecordCount - 1 do
+    begin
+      Grid.DataSource.DataSet.RecNo := i + 1;
+    
+      for j := 0 to Grid.Columns.Count - 1 do
+        Sheet.Cellsi+2, j+1.Value := Grid.Fieldsj.AsString;
+    end;
+  
+    // Save the file
+    Sheet.SaveAs(SaveDialog.FileName);
+  
+    ExcelApp.Quit;
+  end;
+
+  SaveDialog.Free;
+end;
+
+
+Usage example:
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  ExportGridToODS(DBGrid1);
+  ShowMessage('Export completed successfully!');
+end;
+
+In the modified code, a SaveDialog is added to allow the user to choose the save path and filename. The file is then saved with the .ods extension.
+
 Для выгрузки данных из хранимой процедуры в Excel с использованием компонентов TADODataSet и FastReport, вам понадобится выполнить следующие шаги:
 
 1. Создайте новый проект в среде разработки Delphi.
