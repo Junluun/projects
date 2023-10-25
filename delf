@@ -1,0 +1,39 @@
+To place a button in each cell of a specific row in TDBGridEh component in Delphi, you can use the OnDrawColumnCell event to customize the appearance of the cells. Here's an example of how you can achieve this:
+
+In the OnDrawColumnCell event handler of your TDBGridEh component, add the following code:
+delphi
+Copy
+procedure TForm1.DBGridEh1DrawColumnCell(Sender: TObject; const Rect: TRect;
+  DataCol: Integer; Column: TColumnEh; State: TGridDrawState);
+var
+  ButtonRect: TRect;
+  ButtonText: string;
+begin
+  if Column.Field.FieldName = 'ID' then // Replace 'ID' with the actual field name
+  begin
+    // Draw a button in the cell
+    ButtonRect := Rect;
+    InflateRect(ButtonRect, -2, -2); // Adjust the button size as needed
+    ButtonText := 'View'; // Button text
+
+    // Draw the button
+    DBGridEh1.Canvas.FillRect(ButtonRect);
+    DBGridEh1.Canvas.TextRect(ButtonRect, ButtonRect.Left, ButtonRect.Top, ButtonText);
+
+    // Optionally, you can add additional customization
+    // For example, you can change the font, colors, or borders of the button
+    // DBGridEh1.Canvas.Font := ...
+    // DBGridEh1.Canvas.Brush.Color := ...
+    // DBGridEh1.Canvas.Pen.Color := ...
+    // DBGridEh1.Canvas.FrameRect(ButtonRect);
+  end;
+end;
+In the above code, replace 'ID' with the actual field name that contains the ID value.
+
+Customize the appearance of the button by modifying the ButtonRect and ButtonText variables as needed. You can adjust the size and position of the button by changing the values in ButtonRect. You can also change the text displayed on the button by modifying the ButtonText variable.
+
+Optionally, you can add additional customization to the button's appearance by modifying the canvas properties (Font, Brush, Pen, etc.) before drawing the button.
+
+By implementing the OnDrawColumnCell event handler as shown above, you will be able to display a button in each cell of the specified row based on the ID value. You can handle the button clicks separately by adding a click event to the DBGridEh component and checking the coordinates of the clicked cell to determine the action to perform based on the associated ID.
+
+Note: Make sure to assign the OnDrawColumnCell event handler to the TDBGridEh component's OnDrawColumnCell event in the Object Inspector or in code.
