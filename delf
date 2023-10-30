@@ -1,4 +1,29 @@
-I have a code for tgrid, improve it for tdbgrideh 
+I I apologize for the confusion. The error message "Type of expression must be boolean" typically indicates that the condition in an if statement or while loop does not evaluate to a boolean value. 
+
+Here's an example of how you can handle the OnExit event for a TMaskEdit component in Delphi to check if the entered value matches a specified mask and display an error message if it doesn't:
+
+procedure TForm1.MaskEdit1Exit(Sender: TObject);
+var
+  maskEdit: TMaskEdit;
+  mask: string;
+begin
+  maskEdit := Sender as TMaskEdit;
+  mask := '99/99/9999'; // example mask, you can use a different mask
+
+  // Check if the entered value matches the mask
+  if not SameText(maskEdit.EditText, mask) then
+  begin
+    ShowMessage('The entered value does not match the mask!');
+    maskEdit.Text := ''; // clear the field
+    maskEdit.SetFocus; // set focus back to the maskedit field
+  end;
+end;
+
+
+Make sure to replace MaskEdit1 with the name of your TMaskEdit component in the code.
+
+
+have a code for tgrid, improve it for tdbgrideh 
 T
 procedure TForm4. Buttondrawcolumnce11 (Sender: TObject; Button: Tbutton; Btncaption: string; Datacol, YourCol: Integer; Column: TColumn; Grid: TDBGrid; const Rect: TRect; State: TGridDrawState);
 var
