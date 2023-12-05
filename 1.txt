@@ -1,3 +1,37 @@
+In Delphi, if you're using the EHLib treeview component and want to check all children nodes when a parent node is checked, you can achieve this by looping through the child nodes of the parent node and setting their checked state accordingly.
+
+Here's an example of how you could achieve this functionality:
+
+procedure CheckAllChildNodes(node: TTreeNode; checked: Boolean);
+var
+  childNode: TTreeNode;
+begin
+  // Check/uncheck all child nodes
+  childNode := node.getFirstChild;
+  while Assigned(childNode) do
+  begin
+    childNode.Checked := checked;
+    // Recursively check child nodes of childNode
+    CheckAllChildNodes(childNode, checked);
+    childNode := node.GetNextChild(childNode);
+  end;
+end;
+
+procedure TForm1.EHTreeView1NodeChecked(Node: TTreeNode);
+begin
+  // When a node is checked, check/uncheck all of its children
+  CheckAllChildNodes(Node, Node.Checked);
+end;
+
+
+In this example, we define the CheckAllChildNodes procedure which takes a parent node and a boolean flag indicating whether the parent node is checked or unchecked. The procedure then loops through all the child nodes of the parent node and sets their checked state accordingly.
+
+We then use the EHTreeView1NodeChecked event which is fired when a node's checked state changes. In this event, we call the CheckAllChildNodes procedure to handle the cascading check state update for the child nodes.
+
+This code assumes you're using the EHLib treeview component, so make sure to adjust the event and component names accordingly for your specific implementation.
+
+So, by using this code, when a parent node is checked, all of its children nodes will be checked too!
+
 UPDATE stages
 SET date_begin = current_date
 WHERE st_id IN (
