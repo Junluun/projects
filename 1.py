@@ -1,4 +1,81 @@
-import
+Для того чтобы отправить полноценные уведомления в Центр уведомлений Windows из Python без сторонних библиотек, можно использовать Windows API через ctypes, но это потребует немного более сложного подхода. Давайте рассмотрим код, который будет создавать уведомления в Центре уведомлений Windows. Обратите внимание, что использование ctypes требует знания структуры типов и функций.
+
+Ниже приведён пример создания уведомления с использованием ctypes и API Windows:
+
+### Пример кода
+import ctypes
+from ctypes import wintypes
+import time
+
+# Определяем необходимые структуры и константы
+class NOTIFYICONDATA(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("hWnd", wintypes.HWND),
+        ("uID", wintypes.UINT),
+        ("uFlags", wintypes.UINT),
+        ("uCallbackMessage", wintypes.UINT),
+        ("hIcon", wintypes.HICON),
+        ("szTip", wintypes.WCHAR * 128),
+        ("dwState", wintypes.DWORD),
+        ("dwStateMask", wintypes.DWORD),
+        ("szInfo", wintypes.WCHAR * 256),
+        ("uTimeoutOrVersion", wintypes.ULONG),
+        ("dwInfoFlags", wintypes.DWORD),
+        ("guidItem", wintypes.GUID),
+        ("hBalloonIcon", wintypes.HICON),
+    ]
+
+# Константы для уведомлений
+NIM_ADD = 0x00000000
+NIM_MODIFY = 0x00000001
+NIM_DELETE = 0x00000002
+NIIF_INFO = 0x00000001
+
+# Определяем функцию для уведомлений
+def show_notification(title, message):
+    nid = NOTIFYICONDATA()
+    nid.cbSize = ctypes.sizeof(NOTIFYICONDATA)
+    nid.hWnd = 0
+    nid.uID = 1
+    nid.uFlags = 0x00000001 | 0x00000002 | 0x00000004 | 0x00000010 # NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO
+    nid.hIcon = 0  # Здесь вы можете установить свой значок
+    nid.szTip = "Это трюк с уведомлениями"
+    nid.szInfo = message
+    nid.uTimeoutOrVersion = 10  # время отображения уведомления
+    nid.dwInfoFlags = NIIF_INFO  # вид уведомления
+
+    # Получаем дескриптор для системного трея
+    hwnd = ctypes.windll.user32.GetConsoleWindow()
+
+    # Вызов функции
+    ctypes.windll.shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(nid))
+    ctypes.windll.shell32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(nid))
+
+    # Задержка перед удалением уведомления
+    time.sleep(5)
+
+    # Удаляем уведомление
+    ctypes.windll.shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
+
+# Пример использования
+show_notification("Уведомление", "Это уведомление в Центре уведомлений Windows.")
+
+
+### Как это работает
+1. Структура NOTIFYICONDATA: Определяет данные для уведомления, включая текст уведомления, его иконку, флаги и т. д.
+2. Константы: Определяют различные параметры для уведомлений.
+3. Функция show_notification:
+   - Заполняет структуру NOTIFYICONDATA с необходимыми данными.
+   - Вызывает Shell_NotifyIconW для добавления уведомления.
+   - Удаляет уведомление через некоторое время.
+
+### Замечания
+- Для успешной работы вам может понадобиться запускать Python скрипт с правами администратора, особенно если он вызывает функции, требующие повышенных привилегий.
+- Убедитесь, что вы используете Python версии 3.x, так как код может зависеть от различных особенностей версии.
+
+### Рекомендуемый способ
+Хотя вышеизложенный метод работает, для более простого и эффективного способа создания уведомлений рекомендую использовать такие библиотеки, как plyer или winrt, которые значительно упрощают работу с уведомлениями.import
   ComObj, Variants, Dialogs;
 
 procedure ExportGridToODS(Grid: TDBGrid);
