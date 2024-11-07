@@ -1,4 +1,30 @@
-Чтобы отправить уведомления в Центр уведомлений Windows без использования сторонних библиотек, можно воспользоваться Windows API через Python, используя модуль ctypes. Этот метод требует немного сложных манипуляций, но теоретически это возможно. Однако важно отметить, что прямой доступ к системным уведомлениям может быть ограничен.
+CREATE OR REPLACE FUNCTION sync_registry_row(data jsonb)
+RETURNS void LANGUAGE sql AS $$
+WITH new_data AS (
+    SELECT *
+    FROM jsonb_to_recordset(data) AS x(id int, column1 text, column2 text)
+), updated AS (
+    -- Обновляем существующие записи
+    UPDATE registry_row r
+    SET
+        column1 = n.column1,
+        column2 = n.column2,
+        updated_at = NOW()
+    FROM new_data n
+    WHERE r.id = n.id
+    RETURNING r.id
+), inserted AS (
+    -- Вставляем новые записи
+    INSERT INTO registry_row (id, column1, column2, created_at, updated_at)
+    SELECT n.id, n.column1, n.column2, NOW(), NOW()
+    FROM new_data n
+    WHERE n.id NOT IN (SELECT id FROM updated)
+    RETURNING id
+)
+-- Удаляем записи, которых нет в новом наборе данных
+DELETE FROM registry_row
+WHERE id NOT IN (SELECT id FROM new_data);
+$$;Чтобы отправить уведомления в Центр уведомлений Windows без использования сторонних библиотек, можно воспользоваться Windows API через Python, используя модуль ctypes. Этот метод требует немного сложных манипуляций, но теоретически это возможно. Однако важно отметить, что прямой доступ к системным уведомлениям может быть ограничен.
 
 Вот пример кода, который создает уведомление с использованием Windows API через ctypes и win32 функции. В этом примере используется COM-объект для создания уведомления:
 
