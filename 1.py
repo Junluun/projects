@@ -1,3 +1,56 @@
+
+Для того чтобы получить запрос в PostgreSQL, который группирует данные по услугам и предприятиям, а также выводит данные по месяцам с января по декабрь и итоговую сумму по общему количеству и общей сумме, можно использовать следующий SQL-запрос:
+
+```sql
+SELECT 
+    r.предприятие,
+    r.услуга,
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 1 THEN r.количество ELSE 0 END) AS "Январь_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 1 THEN r.сумма ELSE 0 END) AS "Январь_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 2 THEN r.количество ELSE 0 END) AS "Февраль_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 2 THEN r.сумма ELSE 0 END) AS "Февраль_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 3 THEN r.количество ELSE 0 END) AS "Март_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 3 THEN r.сумма ELSE 0 END) AS "Март_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 4 THEN r.количество ELSE 0 END) AS "Апрель_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 4 THEN r.сумма ELSE 0 END) AS "Апрель_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 5 THEN r.количество ELSE 0 END) AS "Май_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 5 THEN r.сумма ELSE 0 END) AS "Май_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 6 THEN r.количество ELSE 0 END) AS "Июнь_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 6 THEN r.сумма ELSE 0 END) AS "Июнь_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 7 THEN r.количество ELSE 0 END) AS "Июль_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 7 THEN r.сумма ELSE 0 END) AS "Июль_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 8 THEN r.количество ELSE 0 END) AS "Август_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 8 THEN r.сумма ELSE 0 END) AS "Август_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 9 THEN r.количество ELSE 0 END) AS "Сентябрь_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 9 THEN r.сумма ELSE 0 END) AS "Сентябрь_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 10 THEN r.количество ELSE 0 END) AS "Октябрь_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 10 THEN r.сумма ELSE 0 END) AS "Октябрь_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 11 THEN r.количество ELSE 0 END) AS "Ноябрь_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 11 THEN r.сумма ELSE 0 END) AS "Ноябрь_Сумма",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 12 THEN r.количество ELSE 0 END) AS "Декабрь_Количество",
+    SUM(CASE WHEN EXTRACT(MONTH FROM re.период) = 12 THEN r.сумма ELSE 0 END) AS "Декабрь_Сумма",
+    SUM(r.количество) AS "Итог_Количество",
+    SUM(r.сумма) AS "Итог_Сумма"
+FROM 
+    реестр_строка r
+JOIN 
+    реестр re ON r.реестр_id = re.id
+GROUP BY 
+    r.предприятие, r.услуга
+ORDER BY 
+    r.предприятие, r.услуга;
+```
+
+### Пояснение:
+- **реестр_строка** — таблица с данными о количестве, сумме, предприятии, услуге и реестре.
+- **реестр** — таблица с данными о периоде.
+- **EXTRACT(MONTH FROM re.период)** — извлекает месяц из даты в поле `период`.
+- **SUM(CASE WHEN ... THEN ... ELSE 0 END)** — суммирует значения только для определенного месяца.
+- **GROUP BY r.предприятие, r.услуга** — группирует данные по предприятиям и услугам.
+- **SUM(r.количество) AS "Итог_Количество"** и **SUM(r.сумма) AS "Итог_Сумма"** — итоговые суммы по количеству и сумме за весь год.
+
+Этот запрос выведет таблицу с данными по каждому предприятию и услуге, с разбивкой по месяцам и итоговыми значениями за год.
+
 CREATE OR REPLACE FUNCTION sync_registry_row(data jsonb)
 RETURNS void LANGUAGE sql AS $$
 WITH new_data AS (
