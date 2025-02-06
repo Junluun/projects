@@ -1,3 +1,54 @@
+CREATE OR REPLACE FUNCTION get_filtered_data(filter_value TEXT)
+RETURNS JSONB AS $$
+DECLARE
+    _result JSONB;
+    _count INTEGER;
+    _result1 JSONB;
+    _count1 INTEGER;
+    _final_json JSONB;
+BEGIN
+    -- CTE для подготовки данных
+    WITH filtered_data AS (
+        SELECT *
+        FROM your_table
+        WHERE some_column = filter_value
+    )
+    -- Первый запрос
+    SELECT 
+        jsonb_agg(t1),  -- Агрегируем данные в JSON-массив
+        COUNT(*)        -- Считаем количество записей
+    INTO 
+        _result,
+        _count
+    FROM filtered_data AS t1;
+
+    -- Второй запрос (например, с другим фильтром или другой логикой)
+    WITH another_filtered_data AS (
+        SELECT *
+        FROM another_table
+        WHERE another_column = filter_value
+    )
+    SELECT 
+        jsonb_agg(t2),  -- Агрегируем данные в JSON-массив
+        COUNT(*)        -- Считаем количество записей
+    INTO 
+        _result1,
+        _count1
+    FROM another_filtered_data AS t2;
+
+    -- Собираем итоговый JSON
+    _final_json := jsonb_build_object(
+        'result', _result,
+        'count', _count,
+        'result1', _result1,
+        'count1', _count1
+    );
+
+    -- Возвращаем итоговый JSON
+    RETURN _final_json;
+END;
+$$ LANGUAGE plpgsql;
+
 
 Для того чтобы получить запрос в PostgreSQL, который группирует данные по услугам и предприятиям, а также выводит данные по месяцам с января по декабрь и итоговую сумму по общему количеству и общей сумме, можно использовать следующий SQL-запрос:
 
